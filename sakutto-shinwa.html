@@ -1,0 +1,523 @@
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>サクッと神話生物</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+
+<style>
+/* レイアウト：まんなかに細い1列。上から順番にカードが増えていく */
+:root {
+  --bg: #0f1a1c;        /* 深海の色 */
+  --panel: #17282b;     /* カードの色 */
+  --line: #2b4246;      /* 線の色 */
+  --fg: #e6e0cf;        /* 文字（骨の色） */
+  --muted: #8fa3a0;     /* うすい文字 */
+  --accent: #d9b441;    /* 黄色の印 */
+  --danger: #d9694f;    /* 失敗・死亡 */
+  --ok: #7fb89a;        /* 成功・生存 */
+  --font-title: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  --font-dice: "DotGothic16", "Courier New", monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.8;
+  padding-block: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+h1 {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.3;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.lead {
+  color: var(--muted);
+  margin: 4px 0 0 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card h2 {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 18px;
+  margin: 0;
+  color: var(--accent);
+}
+
+.card p {
+  margin: 0;
+}
+
+label {
+  font-weight: 700;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+input[type="number"] {
+  width: 120px;
+  font-family: var(--font-dice);
+  font-size: 24px;
+  padding: 6px 10px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+button {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+button.sub {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.error {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* 神話生物の名前 */
+.monster-name {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1.4;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ダイスの数字 */
+.dice {
+  font-family: var(--font-dice);
+  font-size: 56px;
+  line-height: 1;
+  min-width: 110px;
+  text-align: center;
+  padding: 14px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.success {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.fail {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+textarea {
+  width: 100%;
+  height: 110px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  padding: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  resize: none;
+}
+
+footer {
+  color: var(--muted);
+  font-size: 13px;
+}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <h1>サクッと神話生物に会ってみた</h1>
+    <p class="lead">SAN値を入れるだけ。あとはダイスが決めてくれます。</p>
+  </header>
+
+  <!-- 1. SAN値の入力 -->
+  <section class="card" id="step1">
+    <h2>1. SAN値を入力</h2>
+    <div class="row">
+      <label for="sanInput">現在のSAN値</label>
+      <input type="number" id="sanInput" min="1" max="99" value="50">
+    </div>
+    <p class="error" id="errorText" hidden></p>
+    <div class="row">
+      <button id="startButton">神話生物に会いに行く</button>
+    </div>
+  </section>
+
+  <!-- 2. 神話生物に出会った -->
+  <section class="card" id="step2" hidden>
+    <h2>2. 神話生物に出会った！</h2>
+    <p class="monster-name" id="monsterName"></p>
+    <p class="note" id="monsterNote"></p>
+    <p class="note" id="monsterLoss"></p>
+  </section>
+
+  <!-- 3. SANチェック -->
+  <section class="card" id="step3" hidden>
+    <h2>3. SANチェック（1D100）</h2>
+    <div class="row">
+      <div class="dice" id="checkDice">--</div>
+      <button id="checkButton">ダイスを振る</button>
+    </div>
+    <p id="checkResult"></p>
+  </section>
+
+  <!-- 4. SAN値の減少 -->
+  <section class="card" id="step4" hidden>
+    <h2 id="lossTitle">4. SAN値の減少</h2>
+    <div class="row">
+      <div class="dice" id="lossDice">--</div>
+      <button id="lossButton">ダイスを振る</button>
+    </div>
+    <p id="lossResult"></p>
+  </section>
+
+  <!-- 5. 結果 -->
+  <section class="card" id="step5" hidden>
+    <h2>5. 結果</h2>
+    <textarea id="resultText" readonly></textarea>
+    <div class="row">
+      <button id="copyButton">コピーする</button>
+      <button id="retryButton" class="sub">もう一度会いに行く</button>
+    </div>
+    <p class="note" id="copyMessage"></p>
+  </section>
+
+  <footer>
+    成功：出目がSAN値以下 ／ SAN値が0以下になったら「死んだ」扱いです。
+  </footer>
+
+</div>
+
+<script>
+// ===============================
+// 神話生物のデータ
+// success = 成功した時の減少、fail = 失敗した時の減少
+// "1D10" みたいに書くとダイス、"0" や "1" は固定の数字
+// ===============================
+var monsters = [
+  // 1. 神格
+  { name: "アザトース", success: "1D10", fail: "1D100", note: "万物の王。目撃して生き残る方が難しい。" },
+  { name: "ヨグ＝ソトース", success: "1D10", fail: "1D100", note: "一切の時空。真の姿を見てしまった。" },
+  { name: "クトゥルフ", success: "1D10", fail: "1D100", note: "ルルイエの主。巨体を見るだけで精神が崩壊する。" },
+  { name: "シュブ＝ニグラス", success: "1D10", fail: "1D100", note: "千匹の仔を孕みし森の黒山羊。" },
+  { name: "ハスター", success: "1D10", fail: "1D100", note: "名状しがたきもの。本体を目撃してしまった。" },
+  { name: "ニャルラトホテプ（本体）", success: "1D10", fail: "1D100", note: "這い寄る混沌。本来の姿の1つ。" },
+  { name: "ダオロス", success: "1D10", fail: "1D100", note: "幾何学的な異常体。" },
+  { name: "ガタノソア", success: "1D10", fail: "1D100", note: "目撃すると身体が石のように固定化される。" },
+  { name: "シアエガ", success: "1D10", fail: "1D100", note: "巨大な触手の塊と緑の単眼。" },
+
+  // 2. 上位の種族・神格の化身
+  { name: "ショゴス", success: "1D6", fail: "1D20", note: "粘液状の恐怖。テケリ・リ！" },
+  { name: "ティンダロスの猟犬", success: "1D3", fail: "1D20", note: "時間の角から現れる追跡者。" },
+  { name: "クトゥルフの星の落とし子", success: "1D6", fail: "1D20", note: "クトゥルフを小さくしたような巨体。" },
+  { name: "黒い仔山羊", success: "1D3", fail: "1D10", note: "シュブ＝ニグラスの眷属。植物的な巨獣。" },
+  { name: "ハスター（黄衣の王）", success: "0", fail: "1D3", note: "人型の化身。黄色い衣をまとっている。" },
+  { name: "ニャルラトホテプ（人型）", success: "0", fail: "1D6", note: "人間に化けて接触してきた。" },
+
+  // 3. 下級の奉仕種族・独立種族
+  { name: "深きもの", success: "0", fail: "1D6", note: "魚人。群れで出ることが多い。" },
+  { name: "食屍鬼（グール）", success: "0", fail: "1D6", note: "墓を暴く犬のような顔の怪人。" },
+  { name: "ビヤーキー", success: "0", fail: "1D6", note: "ハスターに仕える、宇宙を飛ぶ混成獣。" },
+  { name: "ミ＝ゴ", success: "0", fail: "1D6", note: "ユゴスよりの菌類。蟹のようなハサミを持つ。" },
+  { name: "ムーンビースト", success: "0", fail: "1D8", note: "月に棲むヒキガエル状の不快な生物。" },
+  { name: "蛇人間", success: "0", fail: "1D6", note: "衣服を着て人間に擬態していることもある。" },
+  { name: "夜鬼（ナイトゴーント）", success: "0", fail: "1D6", note: "顔がなく、触るとくすぐってくる。" },
+  { name: "忌まわしき狩人", success: "0", fail: "1D10", note: "巨大な大蛇のような飛行生物。" },
+  { name: "シャンタク鳥", success: "0", fail: "1D6", note: "馬のような頭部を持つ巨大な鳥。" },
+  { name: "ツァトゥグアの落とし子", success: "1", fail: "1D10", note: "変幻自在の黒い無定形生物。" }
+];
+
+// ===============================
+// 画面の部品を取ってくる
+// ===============================
+var sanInput = document.getElementById("sanInput");
+var errorText = document.getElementById("errorText");
+var startButton = document.getElementById("startButton");
+
+var step2 = document.getElementById("step2");
+var monsterName = document.getElementById("monsterName");
+var monsterNote = document.getElementById("monsterNote");
+var monsterLoss = document.getElementById("monsterLoss");
+
+var step3 = document.getElementById("step3");
+var checkDice = document.getElementById("checkDice");
+var checkButton = document.getElementById("checkButton");
+var checkResult = document.getElementById("checkResult");
+
+var step4 = document.getElementById("step4");
+var lossTitle = document.getElementById("lossTitle");
+var lossDice = document.getElementById("lossDice");
+var lossButton = document.getElementById("lossButton");
+var lossResult = document.getElementById("lossResult");
+
+var step5 = document.getElementById("step5");
+var resultText = document.getElementById("resultText");
+var copyButton = document.getElementById("copyButton");
+var retryButton = document.getElementById("retryButton");
+var copyMessage = document.getElementById("copyMessage");
+
+// ===============================
+// 覚えておく値
+// ===============================
+var san = 0;          // 入力されたSAN値
+var monster = null;   // 出会った神話生物
+var lossText = "";    // 今回の減少（"1D10" とか "0" とか）
+
+// ===============================
+// ダイスの関数
+// ===============================
+
+// 1〜sides の数字をランダムに返す
+function rollDice(sides) {
+  return Math.floor(Math.random() * sides) + 1;
+}
+
+// "1D10" みたいな文字からダイスの面の数を取り出す（"0" や "1" の時は 0 を返す）
+function getSides(text) {
+  if (text.indexOf("D") == -1) {
+    return 0;
+  }
+  var parts = text.split("D");
+  return Number(parts[1]);
+}
+
+// ダイスがコロコロ変わる演出をして、最後に finalNumber を表示する
+function showRoll(diceElement, sides, finalNumber, afterFunction) {
+  var count = 0;
+  var timer = setInterval(function () {
+    diceElement.textContent = rollDice(sides);
+    count = count + 1;
+    if (count >= 10) {
+      clearInterval(timer);
+      diceElement.textContent = finalNumber;
+      afterFunction();
+    }
+  }, 60);
+}
+
+// ===============================
+// 1. スタートボタン
+// ===============================
+startButton.addEventListener("click", function () {
+  var value = Number(sanInput.value);
+
+  // 入力チェック
+  if (sanInput.value == "" || value < 1 || value > 99 || Math.floor(value) != value) {
+    errorText.textContent = "SAN値は1〜99の整数で入力してください。";
+    errorText.hidden = false;
+    return;
+  }
+  errorText.hidden = true;
+
+  san = value;
+
+  // 神話生物をランダムに1体選ぶ
+  var index = Math.floor(Math.random() * monsters.length);
+  monster = monsters[index];
+
+  monsterName.textContent = monster.name;
+  monsterNote.textContent = monster.note;
+  monsterLoss.textContent = "SAN値の減少：成功 " + monster.success + " ／ 失敗 " + monster.fail;
+
+  // 入力をロックして、次のカードを出す
+  sanInput.disabled = true;
+  startButton.disabled = true;
+  step2.hidden = false;
+  step3.hidden = false;
+  step3.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+// ===============================
+// 3. SANチェックのボタン
+// ===============================
+checkButton.addEventListener("click", function () {
+  checkButton.disabled = true;
+
+  var roll = rollDice(100);
+
+  showRoll(checkDice, 100, roll, function () {
+    // 出目がSAN値以下なら成功
+    if (roll <= san) {
+      checkResult.textContent = "SAN値 " + san + " に対して出目 " + roll + " → 成功！";
+      checkResult.className = "success";
+      lossText = monster.success;
+    } else {
+      checkResult.textContent = "SAN値 " + san + " に対して出目 " + roll + " → 失敗…";
+      checkResult.className = "fail";
+      lossText = monster.fail;
+    }
+
+    // 次のカードの準備
+    if (getSides(lossText) == 0) {
+      lossTitle.textContent = "4. SAN値の減少（固定で " + lossText + "）";
+      lossButton.textContent = "減少を確認する";
+    } else {
+      lossTitle.textContent = "4. SAN値の減少（" + lossText + "）";
+      lossButton.textContent = "ダイスを振る";
+    }
+    step4.hidden = false;
+    step4.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+});
+
+// ===============================
+// 4. SAN値減少のボタン
+// ===============================
+lossButton.addEventListener("click", function () {
+  lossButton.disabled = true;
+
+  var sides = getSides(lossText);
+
+  if (sides == 0) {
+    // 固定の数字の時はダイスを振らない
+    var fixedLoss = Number(lossText);
+    lossDice.textContent = fixedLoss;
+    showResult(fixedLoss);
+  } else {
+    var loss = rollDice(sides);
+    showRoll(lossDice, sides, loss, function () {
+      showResult(loss);
+    });
+  }
+});
+
+// ===============================
+// 5. 結果を表示する
+// ===============================
+function showResult(loss) {
+  var newSan = san - loss;
+  var ending = "";
+
+  if (newSan <= 0) {
+    newSan = 0;
+    ending = "死んだ";
+    lossResult.className = "fail";
+  } else {
+    ending = "生き残った";
+    lossResult.className = "success";
+  }
+
+  lossResult.textContent = "SAN値 " + san + " → " + newSan + "（-" + loss + "）";
+
+  resultText.value =
+    "貴方は" + monster.name + "に出会ってSAN値を" + loss + "失い" + ending + "\n" +
+    "#サクッと神話生物に会ってみた";
+
+  copyMessage.textContent = "";
+  step5.hidden = false;
+  step5.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ===============================
+// コピーボタン
+// ===============================
+copyButton.addEventListener("click", function () {
+  navigator.clipboard.writeText(resultText.value).then(function () {
+    copyMessage.textContent = "コピーしました！SNSに貼り付けてね。";
+  }).catch(function () {
+    // コピーできなかった時は、文を選択状態にする
+    resultText.select();
+    copyMessage.textContent = "自動でコピーできませんでした。選択された文をそのままコピーしてね。";
+  });
+});
+
+// ===============================
+// もう一度ボタン（全部はじめに戻す）
+// ===============================
+retryButton.addEventListener("click", function () {
+  step2.hidden = true;
+  step3.hidden = true;
+  step4.hidden = true;
+  step5.hidden = true;
+
+  checkDice.textContent = "--";
+  lossDice.textContent = "--";
+  checkResult.textContent = "";
+  lossResult.textContent = "";
+  copyMessage.textContent = "";
+
+  sanInput.disabled = false;
+  startButton.disabled = false;
+  checkButton.disabled = false;
+  lossButton.disabled = false;
+
+  document.getElementById("step1").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+</script>
+
+</head><body>…</body></html>
